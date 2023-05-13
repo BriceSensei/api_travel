@@ -9,7 +9,6 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Auth;
 
 use Tymon\JWTAuth\Exceptions\JWTException;
-use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 
 class UserController extends Controller
@@ -131,23 +130,21 @@ class UserController extends Controller
 
 
 
-    public function login(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'mot_de_passe' => 'required|string'
-        ]);
+public function login(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+        'mot_de_passe' => 'required'
+    ]);
 
-        $credentials = $request->only('email', 'mot_de_passe');
+    $user = User::where('email', $request->email)->first();
 
-        try {
-            if (!$token = JWTAuth::attempt($credentials)) {
-                return response()->json(['error' => 'informations invalides'], 401);
-            }
-        } catch (JWTException $e) {
-            return response()->json(['error' => 'Impossible de créer le token'], 500);
-        }
-
-        return response()->json(['token' => $token], 200);
+    if (!$user || !Hash::check($request->mot_de_passe, $user->mot_de_passe)) {
+        return response()->json(['error' => 'informations invalides'], 401);
     }
+
+    $token = JWTAuth::fromUser($user);
+
+    return response()->json(['token' => $token], 200);
+}
 }
